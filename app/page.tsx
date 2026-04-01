@@ -139,7 +139,7 @@ export default function Home() {
       : currentCfg.userId
     const { bones, inspirationSeed } = rollWithSeed(rollSeed)
     const soul = generateSoulFromBones(bones, inspirationSeed)
-    saveConfig({ companion: soul, statsAdjust: undefined, lastRollSeed: rollSeed })
+    saveConfig({ companion: soul, statsAdjust: undefined, lastRollSeed: rollSeed, luckyOverride: false })
     const newCfg = getConfig()
     const newCompanion = getCompanion(newCfg)!
     addLine('intro', `✨ A wild ${newCompanion.rarity} ${newCompanion.species} hatched!`)
