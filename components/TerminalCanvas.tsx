@@ -130,9 +130,15 @@ export function TerminalCanvas({
       }
     }
 
+    const startTime = performance.now()
+    const SPEED = 0.4 // full rainbow cycle per second (lower = slower)
+
     function tick() {
       if (cancelled) return
-      if (rainbow) frameRef.current = (frameRef.current + 0.03) % RAINBOW.length
+      if (rainbow) {
+        const elapsed = (performance.now() - startTime) / 1000 // seconds
+        frameRef.current = (elapsed * SPEED * RAINBOW.length) % RAINBOW.length
+      }
       drawFrame()
       if (rainbow) {
         rafRef.current = requestAnimationFrame(tick)
