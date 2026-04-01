@@ -2,16 +2,25 @@
 import { useEffect, useState } from 'react'
 import type { CompanionBones } from '@/lib/core/types'
 import { renderSprite, spriteFrameCount } from '@/lib/core/sprites'
+import { TerminalWindow } from './TerminalWindow'
 
-const RARITY_CSS: Record<string, string> = {
-  common: 'text-zinc-400',
-  uncommon: 'text-green-400',
-  rare: 'text-cyan-400',
-  epic: 'text-purple-400',
-  legendary: 'text-yellow-400',
+const RARITY_COLOR: Record<string, string> = {
+  common:    '#a1a1aa',
+  uncommon:  '#4ade80',
+  rare:      '#22d3ee',
+  epic:      '#c084fc',
+  legendary: '#facc15',
 }
 
-export function CompanionSprite({ bones, animated = true }: { bones: CompanionBones; animated?: boolean }) {
+export function CompanionSprite({
+  bones,
+  animated = true,
+  title,
+}: {
+  bones: CompanionBones
+  animated?: boolean
+  title?: string
+}) {
   const [frame, setFrame] = useState(0)
   const frameCount = spriteFrameCount(bones.species)
 
@@ -22,24 +31,16 @@ export function CompanionSprite({ bones, animated = true }: { bones: CompanionBo
   }, [animated, frameCount])
 
   const lines = renderSprite(bones, frame)
-  const colorClass = RARITY_CSS[bones.rarity] ?? 'text-zinc-400'
+  const color = RARITY_COLOR[bones.rarity] ?? '#a1a1aa'
+  const glowColor = bones.shiny ? color : undefined
+  const windowTitle = title ?? `${bones.species} — ${bones.rarity}`
 
   return (
-    <div
-      className={`select-none ${colorClass} ${bones.shiny ? 'drop-shadow-[0_0_8px_currentColor]' : ''}`}
-      style={{
-        fontFamily: 'ui-monospace, "SF Mono", "Menlo", "Consolas", "Courier New", monospace',
-        fontSize: '13px',
-        lineHeight: '1.35',
-        letterSpacing: '0em',
-        fontVariantLigatures: 'none',
-        fontFeatureSettings: '"liga" 0, "calt" 0, "kern" 0',
-        textRendering: 'optimizeSpeed',
-      }}
-    >
-      {lines.map((line, i) => (
-        <div key={i} style={{ whiteSpace: 'pre', minWidth: '12ch' }}>{line}</div>
-      ))}
-    </div>
+    <TerminalWindow
+      title={windowTitle}
+      lines={lines}
+      color={color}
+      glowColor={glowColor}
+    />
   )
 }

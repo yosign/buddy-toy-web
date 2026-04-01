@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react'
 import { CompanionSprite } from '@/components/CompanionSprite'
-import { Badge } from '@/components/ui/badge'
+import { TerminalWindow } from '@/components/TerminalWindow'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getCompanion, roll } from '@/lib/core/companion'
@@ -24,30 +24,36 @@ type LogLine = {
   text: string
 }
 
-const RARITY_TEXT_CSS: Record<string, string> = {
-  common: 'text-zinc-400',
-  uncommon: 'text-green-400',
-  rare: 'text-cyan-400',
-  epic: 'text-purple-400',
-  legendary: 'text-yellow-400',
-}
-
-const RARITY_BADGE_CSS: Record<string, string> = {
-  common: 'bg-zinc-700 text-zinc-300',
-  uncommon: 'bg-green-900 text-green-300',
-  rare: 'bg-cyan-900 text-cyan-300',
-  epic: 'bg-purple-900 text-purple-300',
-  legendary: 'bg-yellow-900 text-yellow-300',
+const RARITY_COLOR: Record<string, string> = {
+  common:    '#a1a1aa',
+  uncommon:  '#4ade80',
+  rare:      '#22d3ee',
+  epic:      '#c084fc',
+  legendary: '#facc15',
 }
 
 let lineId = 0
 function nextId() { return ++lineId }
 
-function statBarColor(val: number): string {
-  if (val > 70) return 'bg-emerald-500'
-  if (val >= 40) return 'bg-amber-500'
-  return 'bg-zinc-600'
+function renderStatBar(value: number): string {
+  const filled = Math.round(value / 10)
+  return '█'.repeat(filled) + '░'.repeat(10 - filled)
 }
+
+function companionInfoLines(companion: Companion): string[] {
+  const stars = RARITY_STARS[companion.rarity]
+  return [
+    `${companion.name}  ${stars} ${companion.rarity}`,
+    `species: ${companion.species}  shiny: ${companion.shiny}`,
+    '─'.repeat(28),
+    ...STAT_NAMES.map(name =>
+      `${name.padEnd(10)} ${renderStatBar(companion.stats[name])}  ${companion.stats[name]}`
+    ),
+    '─'.repeat(28),
+    `"${companion.personality}"`,
+  ]
+}
+
 
 export default function Home() {
   const [log, setLog] = useState<LogLine[]>([])
@@ -208,11 +214,11 @@ export default function Home() {
               <p className="text-zinc-500 text-sm italic">No companion yet. Type /buddy to hatch yours.</p>
             </div>
           ) : (
-            <div className="flex gap-6">
-              {/* Sprite column */}
-              <div className="flex flex-col items-center gap-2 min-w-[140px]">
+            <div className="flex flex-col gap-4">
+              {/* Sprite row */}
+              <div className="flex flex-col items-start gap-2">
                 {reaction && (
-                  <div className="bg-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 italic max-w-[160px] text-center">
+                  <div className="bg-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 italic max-w-[220px]">
                     {reaction}
                   </div>
                 )}
@@ -221,48 +227,12 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Info column */}
-              <div className="flex flex-col gap-2 flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xl font-bold ${RARITY_TEXT_CSS[companion.rarity] ?? 'text-zinc-400'}`}>
-                    {companion.name}
-                  </span>
-                  {companion.shiny && (
-                    <span className="text-yellow-400 text-sm font-semibold">✨ SHINY</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-sm ${RARITY_TEXT_CSS[companion.rarity] ?? 'text-zinc-400'}`}>
-                    {RARITY_STARS[companion.rarity]}
-                  </span>
-                  <Badge className={`text-xs uppercase ${RARITY_BADGE_CSS[companion.rarity] ?? 'bg-zinc-700 text-zinc-300'}`}>
-                    {companion.rarity}
-                  </Badge>
-                  <span className="text-zinc-400 text-sm">{companion.species}</span>
-                </div>
-
-                <p className="text-zinc-500 text-xs italic">{companion.personality}</p>
-
-                {/* Stats */}
-                <div className="flex flex-col gap-1.5 mt-1">
-                  {STAT_NAMES.map(stat => {
-                    const val = companion.stats[stat]
-                    return (
-                      <div key={stat} className="flex items-center gap-2">
-                        <span className="text-zinc-400 font-mono uppercase text-xs w-20 shrink-0">{stat}</span>
-                        <div className="flex-1 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${statBarColor(val)}`}
-                            style={{ width: `${val}%` }}
-                          />
-                        </div>
-                        <span className="text-zinc-500 font-mono text-xs w-7 text-right">{val}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              {/* Info terminal */}
+              <TerminalWindow
+                title="companion info"
+                lines={companionInfoLines(companion)}
+                color={RARITY_COLOR[companion.rarity] ?? '#a1a1aa'}
+              />
             </div>
           )}
         </div>
