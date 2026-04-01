@@ -1,15 +1,14 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
-// Blend baseColor with white at given alpha (0-1)
+// Blend hex color with white at given alpha (0-1)
 function blendWhite(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  const rr = Math.round(r + (255 - r) * alpha)
-  const gg = Math.round(g + (255 - g) * alpha)
-  const bb = Math.round(b + (255 - b) * alpha)
-  return `rgb(${rr},${gg},${bb})`
+  const clean = hex.startsWith('#') ? hex : '#a1a1aa'
+  const r = parseInt(clean.slice(1, 3), 16)
+  const g = parseInt(clean.slice(3, 5), 16)
+  const b = parseInt(clean.slice(5, 7), 16)
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return clean
+  return `rgb(${Math.round(r + (255 - r) * alpha)},${Math.round(g + (255 - g) * alpha)},${Math.round(b + (255 - b) * alpha)})`
 }
 
 // Given char position (0..1 normalized across all chars) and wave offset (0..1),
@@ -136,7 +135,7 @@ export function TerminalCanvas({
         allChars.forEach(({ ch, row, col, idx }) => {
           const pos = idx / total
           const alpha = shimmerAlpha(pos, offset)
-          const blended = alpha > 0.01 ? blendWhite(color.startsWith('#') ? color : '#facc15', alpha) : color
+          const blended = alpha > 0.01 ? blendWhite(color, alpha) : color
           ctx.fillStyle = blended
           ctx.fillText(ch, padding + col * cellW, padding + row * lineH)
         })
