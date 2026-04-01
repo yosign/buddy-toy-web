@@ -1,13 +1,30 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
-// Blend hex color with white at given alpha (0-1)
-function blendWhite(hex: string, alpha: number): string {
-  const clean = hex.startsWith('#') ? hex : '#a1a1aa'
-  const r = parseInt(clean.slice(1, 3), 16)
-  const g = parseInt(clean.slice(3, 5), 16)
-  const b = parseInt(clean.slice(5, 7), 16)
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return clean
+const RAINBOW_STOPS = ['#ff4444', '#ff9900', '#ffee00', '#44ff88', '#44aaff', '#cc44ff']
+
+// Get rainbow color for a character position + time offset
+function rainbowAt(pos: number, offset: number): string {
+  const t = ((pos + offset) % 1 + 1) % 1
+  const scaled = t * RAINBOW_STOPS.length
+  const i = Math.floor(scaled)
+  const frac = scaled - i
+  const a = RAINBOW_STOPS[i % RAINBOW_STOPS.length]!
+  const b = RAINBOW_STOPS[(i + 1) % RAINBOW_STOPS.length]!
+  // linear interpolate between two rainbow stops
+  const ar = parseInt(a.slice(1, 3), 16), ag = parseInt(a.slice(3, 5), 16), ab = parseInt(a.slice(5, 7), 16)
+  const br = parseInt(b.slice(1, 3), 16), bg = parseInt(b.slice(3, 5), 16), bb = parseInt(b.slice(5, 7), 16)
+  return `rgb(${Math.round(ar + (br - ar) * frac)},${Math.round(ag + (bg - ag) * frac)},${Math.round(ab + (bb - ab) * frac)})`
+}
+
+// Blend a hex/rgb color string with white at given alpha (0-1)
+function blendWhite(base: string, alpha: number): string {
+  // parse rgb(...) or #hex
+  let r = 160, g = 160, b = 160
+  const hexM = base.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
+  const rgbM = base.match(/^rgb\((\d+),(\d+),(\d+)\)$/)
+  if (hexM) { r = parseInt(hexM[1]!, 16); g = parseInt(hexM[2]!, 16); b = parseInt(hexM[3]!, 16) }
+  else if (rgbM) { r = +rgbM[1]!; g = +rgbM[2]!; b = +rgbM[3]! }
   return `rgb(${Math.round(r + (255 - r) * alpha)},${Math.round(g + (255 - g) * alpha)},${Math.round(b + (255 - b) * alpha)})`
 }
 
@@ -134,9 +151,12 @@ export function TerminalCanvas({
 
         allChars.forEach(({ ch, row, col, idx }) => {
           const pos = idx / total
-          const alpha = shimmerAlpha(pos, offset)
-          const blended = alpha > 0.01 ? blendWhite(color, alpha) : color
-          ctx.fillStyle = blended
+          // Base: rainbow color per char position (slow drift)
+          const base = rainbowAt(pos, offset * 0.3)
+          // Overlay: white shimmer wave
+          const shimmer = shimmerAlpha(pos, offset)
+          const final = shimmer > 0.01 ? blendWhite(base, shimmer * 0.6) : base
+          ctx.fillStyle = final
           ctx.fillText(ch, padding + col * cellW, padding + row * lineH)
         })
       }
