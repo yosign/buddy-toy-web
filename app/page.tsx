@@ -404,6 +404,7 @@ export default function Home() {
               title="rarity guide"
               lines={RARITY_GUIDE_LINES}
               color="#a1a1aa"
+              variant="dark"
             />
           </div>
         </details>
