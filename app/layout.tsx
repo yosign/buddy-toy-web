@@ -17,6 +17,9 @@ const robotoMono = Roboto_Mono({
 export const metadata: Metadata = {
   title: "buddy-toy",
   description: "Your deterministic dev companion",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
