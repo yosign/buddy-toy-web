@@ -153,16 +153,6 @@ export default function Home() {
     }, 600)
   }
 
-  const handlePet = () => {
-    if (!companion) return
-    addLine('system', `${companion.name} appreciated that. ♥`)
-    setPetFlash(true)
-    if (petFlashTimeoutRef.current) clearTimeout(petFlashTimeoutRef.current)
-    petFlashTimeoutRef.current = setTimeout(() => {
-      setPetFlash(false)
-      petFlashTimeoutRef.current = undefined
-    }, 1200)
-  }
 
   const handleMuteToggle = () => {
     const muted = !(cfg.companionMuted ?? false)
@@ -236,9 +226,6 @@ export default function Home() {
           break
         }
 
-        case 'pet':
-          handlePet()
-          break
 
         case 'mute':
           saveConfig({ companionMuted: true })
@@ -348,13 +335,7 @@ export default function Home() {
               >
                 🎲 Re-roll
               </Button>
-              <Button
-                variant="outline"
-                onClick={handlePet}
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
-              >
-                🐾 Pet
-              </Button>
+
               <Button
                 variant="outline"
                 onClick={handleMuteToggle}
