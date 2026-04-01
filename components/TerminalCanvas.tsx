@@ -28,14 +28,27 @@ function blendWhite(base: string, alpha: number): string {
   return `rgb(${Math.round(r + (255 - r) * alpha)},${Math.round(g + (255 - g) * alpha)},${Math.round(b + (255 - b) * alpha)})`
 }
 
-// Given char position (0..1 normalized across all chars) and wave offset (0..1),
-// return alpha of white overlay — a smooth pulse wave
+// Continuous shimmer: white light sweeps left→right, never loops/jumps.
+// offset is absolute (keeps growing), pos is 0..1 char position.
+// The beam is a gaussian-like window of width BEAM_W centered at offset.
+// When offset > 1 + BEAM_W the beam is off-screen to the right and invisible.
+// Since offset grows continuously from 0, the beam sweeps once per SPEED cycle
+// and then stays invisible — no jump, no restart.
+const BEAM_W = 0.18  // beam half-width in normalized units
+
 function shimmerAlpha(pos: number, offset: number): number {
-  // wave travels left to right, wraps around
-  const dist = ((pos - offset) % 1 + 1) % 1  // 0..1
-  // gaussian-ish peak at dist=0, falloff
-  const width = 0.18
-  return Math.max(0, 1 - (dist / width) ** 2) * 0.55
+  // offset grows continuously; beam center is (offset % 1) wrapped per cycle
+  // but we want continuous — beam exits right at 1.0 and re-enters from left
+  // This gives smooth sweep: (offset % 1) is the beam center, wraps 0→1
+  const center = offset % 1
+  const dist = Math.abs(pos - center)
+  // Also check wrap-around distance (beam near left/right edge)
+  const distW = Math.min(dist, 1 - dist)
+  const t = distW / BEAM_W
+  if (t >= 1) return 0
+  // Smooth falloff: (1 - t^2)^2
+  const wave = (1 - t * t) * (1 - t * t)
+  return wave * 0.65
 }
 
 type Props = {
@@ -163,13 +176,14 @@ export function TerminalCanvas({
     }
 
     const startTime = performance.now()
-    const SPEED = 0.33 // shimmer wave cycles per second (1/3 = ~3s per sweep)
+    const SPEED = 0.28 // shimmer wave cycles per second (~3.5s per sweep)
 
     function tick() {
       if (cancelled) return
       if (rainbow) {
         const elapsed = (performance.now() - startTime) / 1000 // seconds
-        frameRef.current = (elapsed * SPEED) % 1  // 0..1 wave position
+        // Do NOT take modulo — let offset grow continuously so beam never jumps
+        frameRef.current = elapsed * SPEED
       }
       drawFrame()
       if (rainbow) {

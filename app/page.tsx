@@ -256,44 +256,44 @@ export default function Home() {
   const displayStats = companion ? (cfg.statsAdjust ? { ...companion.stats, ...cfg.statsAdjust } : companion.stats) : undefined
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-start p-6 gap-6">
+    <main className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col items-center justify-start p-6 gap-6">
       <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-100">buddy-toy</h1>
-          <p className="text-zinc-500 text-sm mt-1">your deterministic dev companion</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-800">buddy-toy</h1>
+          <p className="text-zinc-400 text-sm mt-1">your deterministic dev companion</p>
         </div>
 
         {/* Companion Terminal — sprite + info in one wide window */}
         {!companion ? (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 flex flex-col items-center gap-3">
-            <pre className="font-mono text-zinc-600 text-lg select-none leading-snug">{
+          <div className="rounded-xl border border-zinc-200 bg-white p-8 flex flex-col items-center gap-3 shadow-sm">
+            <pre className="font-mono text-zinc-300 text-lg select-none leading-snug">{
 `  .---------.
   |  [ ??? ]  |
   \`---------\``
             }</pre>
-            <p className="text-zinc-500 text-sm italic">No companion yet. Click Hatch to begin.</p>
+            <p className="text-zinc-400 text-sm italic">No companion yet. Click Hatch to begin.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/50 w-full">
+          <div className="rounded-xl border border-zinc-200 bg-white shadow-md shadow-zinc-100 w-full">
             {/* Title bar */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-800 rounded-t-xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-zinc-50 border-b border-zinc-200 rounded-t-xl">
               <div className="flex gap-1.5 shrink-0">
-                <div className="w-3 h-3 rounded-full bg-red-500/70" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-                <div className="w-3 h-3 rounded-full bg-green-500/70" />
+                <div className="w-3 h-3 rounded-full bg-red-400" />
+                <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                <div className="w-3 h-3 rounded-full bg-green-400" />
               </div>
-              <span className={`text-xs font-mono mx-auto ${companion.shiny ? 'shiny-text font-semibold' : 'text-zinc-500'}`}>
+              <span className={`text-xs font-mono mx-auto ${companion.shiny ? 'shiny-text font-semibold' : 'text-zinc-400'}`}>
                 {companion.species} — {companion.rarity}
                 {companion.shiny && <span className="ml-1">✨ SHINY</span>}
               </span>
             </div>
             {/* Content: sprite left, info right */}
-            <div className="p-5 flex flex-row gap-6 items-start rounded-b-xl bg-zinc-950">
+            <div className="p-5 flex flex-row gap-6 items-start rounded-b-xl bg-white">
               {/* Sprite column */}
               <div className="relative shrink-0">
                 {reaction && (
-                  <div className="mb-2 bg-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 italic max-w-[180px]">
+                  <div className="mb-2 bg-zinc-100 rounded-lg px-3 py-1.5 text-xs text-zinc-500 italic max-w-[180px]">
                     {reaction}
                   </div>
                 )}
@@ -331,7 +331,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 onClick={handleHatch}
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
               >
                 🎲 Re-roll
               </Button>
@@ -339,14 +339,14 @@ export default function Home() {
               <Button
                 variant="outline"
                 onClick={handleMuteToggle}
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
               >
                 {cfg.companionMuted ? '🔊 Unmute' : '🔇 Mute'}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowStats(s => !s)}
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
               >
                 ⚙ Adjust Stats
               </Button>
@@ -363,11 +363,11 @@ export default function Home() {
 
         {/* Stat Sliders Panel */}
         {showStats && companion && displayStats && (
-          <div className="grid gap-3 p-4 bg-zinc-900 rounded-xl border border-zinc-800">
-            <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">Adjust Stats</p>
+          <div className="grid gap-3 p-4 bg-zinc-50 rounded-xl border border-zinc-200">
+            <p className="text-xs text-zinc-400 font-mono uppercase tracking-wider">Adjust Stats</p>
             {STAT_NAMES.map(name => (
               <div key={name} className="flex items-center gap-3">
-                <span className="text-xs font-mono text-zinc-400 w-24">{name}</span>
+                <span className="text-xs font-mono text-zinc-500 w-24">{name}</span>
                 <input
                   type="range"
                   min={1}
@@ -376,10 +376,10 @@ export default function Home() {
                   onChange={e => handleStatChange(name, Number(e.target.value))}
                   className="flex-1 accent-emerald-500"
                 />
-                <span className="text-xs font-mono text-zinc-300 w-8 text-right">{displayStats[name]}</span>
+                <span className="text-xs font-mono text-zinc-700 w-8 text-right">{displayStats[name]}</span>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={handleResetStats} className="border-zinc-700 text-zinc-400 hover:bg-zinc-800 w-fit">
+            <Button variant="outline" size="sm" onClick={handleResetStats} className="border-zinc-200 text-zinc-500 hover:bg-white w-fit">
               Reset
             </Button>
           </div>
@@ -387,7 +387,7 @@ export default function Home() {
 
         {/* Rarity Guide */}
         <details className="group">
-          <summary className="cursor-pointer text-zinc-500 text-sm font-mono select-none list-none flex items-center gap-1 hover:text-zinc-300 transition-colors">
+          <summary className="cursor-pointer text-zinc-400 text-sm font-mono select-none list-none flex items-center gap-1 hover:text-zinc-600 transition-colors">
             <span className="group-open:rotate-90 inline-block transition-transform">▸</span>
             Rarity Guide
           </summary>
@@ -401,19 +401,19 @@ export default function Home() {
         </details>
 
         {/* Chat Log */}
-        <div className="bg-zinc-900 rounded-xl p-4 font-mono text-sm space-y-1 max-h-48 overflow-y-auto">
+        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 font-mono text-sm space-y-1 max-h-48 overflow-y-auto">
           {log.length === 0 ? (
-            <span className="text-zinc-600 italic">no messages yet</span>
+            <span className="text-zinc-400 italic">no messages yet</span>
           ) : (
             log.map(line => (
               <div
                 key={line.id}
                 className={
                   line.kind === 'user'
-                    ? 'text-cyan-400'
+                    ? 'text-cyan-600'
                     : line.kind === 'intro'
-                    ? 'text-zinc-500 italic'
-                    : 'text-zinc-400 whitespace-pre-wrap'
+                    ? 'text-zinc-400 italic'
+                    : 'text-zinc-500 whitespace-pre-wrap'
                 }
               >
                 {line.kind === 'user' ? `> ${line.text}` : line.text}
@@ -429,7 +429,7 @@ export default function Home() {
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Type /buddy to hatch, or just chat…"
-            className="flex-1 bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 font-mono"
+            className="flex-1 bg-white border-zinc-200 text-zinc-800 placeholder:text-zinc-400 focus-visible:ring-emerald-400 focus-visible:border-emerald-400 font-mono"
           />
           <Button
             type="submit"
