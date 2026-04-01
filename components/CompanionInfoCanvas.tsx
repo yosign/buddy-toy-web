@@ -45,6 +45,7 @@ export function CompanionInfoCanvas({
       glowColor={companion.shiny ? color : undefined}
       bgColor="transparent"
       padding={4}
+      rainbow={companion.shiny}
     />
   )
 }

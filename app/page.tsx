@@ -288,7 +288,7 @@ export default function Home() {
             <p className="text-zinc-500 text-sm italic">No companion yet. Click Hatch to begin.</p>
           </div>
         ) : (
-          <div className={`rounded-xl border bg-zinc-950 w-full ${companion.shiny ? 'shiny-border' : 'border-zinc-800 shadow-2xl shadow-black/50'}`}>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/50 w-full">
             {/* Title bar */}
             <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-800 rounded-t-xl">
               <div className="flex gap-1.5 shrink-0">

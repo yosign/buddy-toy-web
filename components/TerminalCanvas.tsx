@@ -1,6 +1,13 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
+const RAINBOW = ['#ff4444', '#ff9900', '#ffee00', '#44ff88', '#44aaff', '#cc44ff']
+
+function rainbowColor(charIndex: number, offset: number): string {
+  const i = Math.floor((charIndex + offset) % RAINBOW.length)
+  return RAINBOW[(i + RAINBOW.length) % RAINBOW.length]!
+}
+
 type Props = {
   lines: string[]
   color?: string
@@ -8,6 +15,7 @@ type Props = {
   bgColor?: string
   fontSize?: number
   padding?: number
+  rainbow?: boolean  // shiny mode: per-char rainbow cycling
 }
 
 export function TerminalCanvas({
@@ -17,99 +25,129 @@ export function TerminalCanvas({
   bgColor = '#09090b',
   fontSize = 14,
   padding = 16,
+  rainbow = false,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const frameRef = useRef<number>(0)
+  const rafRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
+    let fontReady = false
+    let loadedFont = `${fontSize}px "Courier New", monospace`
 
-    async function draw() {
+    async function loadFont() {
+      const candidates = [
+        `${fontSize}px "Geist Mono"`,
+        `${fontSize}px "__GeistMono_Fallback"`,
+        `${fontSize}px "Roboto Mono"`,
+      ]
+      for (const f of candidates) {
+        try {
+          await document.fonts.load(f)
+          if (document.fonts.check(f)) { loadedFont = `${f}, "Courier New", monospace`; break }
+        } catch {}
+      }
+      fontReady = true
+    }
+
+    function drawFrame() {
+      if (cancelled || !fontReady) return
       const canvas = canvasRef.current
       if (!canvas) return
       const ctx = canvas.getContext('2d')
       if (!ctx) return
 
-      // Wait for font to load (critical for mobile)
-      // Try Geist Mono first (self-hosted via next/font), fall back to Roboto Mono
-      const fontCandidates = [
-        `${fontSize}px "Geist Mono"`,
-        `${fontSize}px "__GeistMono_Fallback"`,
-        `${fontSize}px "Roboto Mono"`,
-      ]
-      let loadedFont = fontCandidates[fontCandidates.length - 1]!
-      for (const f of fontCandidates) {
-        try {
-          await document.fonts.load(f)
-          if (document.fonts.check(f)) { loadedFont = f; break }
-        } catch {}
-      }
-      if (cancelled) return
-
-      const font = `${loadedFont}, "Courier New", monospace`
+      const font = loadedFont
       ctx.font = font
-
-      // Measure cell width using a known wide char
       const cellW = ctx.measureText('W').width
       const lineH = Math.ceil(fontSize * 1.5)
-
       const cols = Math.max(...lines.map(l => l.length), 1)
       const rows = lines.length
-
-      const contentW = Math.ceil(cols * cellW)
-      const contentH = rows * lineH
-      const width = contentW + padding * 2
-      const height = contentH + padding * 2
-
+      const width = Math.ceil(cols * cellW) + padding * 2
+      const height = rows * lineH + padding * 2
       const dpr = window.devicePixelRatio || 1
-      canvas.width = Math.ceil(width * dpr)
-      canvas.height = Math.ceil(height * dpr)
-      canvas.style.width = `${width}px`
-      canvas.style.height = `${height}px`
-      ctx.scale(dpr, dpr)
 
-      // Background (skip if transparent)
+      // Only resize if needed
+      if (canvas.width !== Math.ceil(width * dpr) || canvas.height !== Math.ceil(height * dpr)) {
+        canvas.width = Math.ceil(width * dpr)
+        canvas.height = Math.ceil(height * dpr)
+        canvas.style.width = `${width}px`
+        canvas.style.height = `${height}px`
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+      // Background
       if (bgColor !== 'transparent') {
         ctx.fillStyle = bgColor
         ctx.fillRect(0, 0, width, height)
-        // Scanlines only on opaque bg
         for (let y = 0; y < height; y += 3) {
           ctx.fillStyle = 'rgba(0,0,0,0.06)'
           ctx.fillRect(0, y, width, 1)
         }
+      } else {
+        ctx.clearRect(0, 0, width, height)
       }
 
-      // Text setup
       ctx.font = font
       ctx.textBaseline = 'top'
-      ctx.fillStyle = color
 
-      if (glowColor) {
-        ctx.shadowColor = glowColor
-        ctx.shadowBlur = 8
-      }
-
-      // Draw char by char at explicit x positions
-      lines.forEach((line, row) => {
-        const y = padding + row * lineH
-        for (let col = 0; col < line.length; col++) {
-          const ch = line[col]
-          if (ch && ch !== ' ') {
-            ctx.fillText(ch, padding + col * cellW, y)
+      if (!rainbow) {
+        // Normal mode: single color
+        ctx.fillStyle = color
+        if (glowColor) { ctx.shadowColor = glowColor; ctx.shadowBlur = 8 }
+        lines.forEach((line, row) => {
+          const y = padding + row * lineH
+          for (let col = 0; col < line.length; col++) {
+            const ch = line[col]
+            if (ch && ch !== ' ') ctx.fillText(ch, padding + col * cellW, y)
           }
-        }
-      })
+        })
+        ctx.shadowBlur = 0
+      } else {
+        // Rainbow mode: per-char color, offset shifts each frame = marching effect
+        const offset = frameRef.current
+        // subtle glow for shiny
+        ctx.shadowBlur = 6
 
-      ctx.shadowBlur = 0
+        let globalCol = 0
+        lines.forEach((line, row) => {
+          const y = padding + row * lineH
+          for (let col = 0; col < line.length; col++) {
+            const ch = line[col]
+            if (ch && ch !== ' ') {
+              const c = rainbowColor(globalCol, offset)
+              ctx.fillStyle = c
+              ctx.shadowColor = c
+              ctx.fillText(ch, padding + col * cellW, y)
+            }
+            globalCol++
+          }
+          globalCol++ // newline gap
+        })
+        ctx.shadowBlur = 0
+      }
     }
 
-    draw()
-    return () => { cancelled = true }
-  }, [lines, color, glowColor, bgColor, fontSize, padding])
+    function tick() {
+      if (cancelled) return
+      if (rainbow) frameRef.current = (frameRef.current + 0.15) % RAINBOW.length
+      drawFrame()
+      if (rainbow) {
+        rafRef.current = requestAnimationFrame(tick)
+      }
+    }
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ display: 'block' }}
-    />
-  )
+    loadFont().then(() => {
+      if (!cancelled) tick()
+    })
+
+    return () => {
+      cancelled = true
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [lines, color, glowColor, bgColor, fontSize, padding, rainbow])
+
+  return <canvas ref={canvasRef} style={{ display: 'block' }} />
 }

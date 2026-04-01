@@ -39,6 +39,7 @@ export function CompanionSpriteCanvas({
       glowColor={glowColor}
       bgColor="transparent"
       padding={4}
+      rainbow={bones.shiny}
     />
   )
 }
