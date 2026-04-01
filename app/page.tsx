@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { CompanionSprite } from '@/components/CompanionSprite'
 import { TerminalWindow } from '@/components/TerminalWindow'
 import { Button } from '@/components/ui/button'
@@ -81,9 +81,9 @@ export default function Home() {
     setLog(prev => [...prev, { id: nextId(), kind, text }])
   }
 
-  const addIntroLine = useEffectEvent((text: string) => {
-    addLine('intro', text)
-  })
+  const addIntroLine = useCallback((text: string) => {
+    setLog(prev => [...prev, { id: nextId(), kind: 'intro', text }])
+  }, [])
 
   // Mount: load config
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function Home() {
       addIntroLine(`${companion.name} is watching over you.`)
       saveConfig({ introShownForName: companion.name })
     }
-  }, [])
+  }, [addIntroLine])
 
   // Auto-scroll log
   useEffect(() => {
