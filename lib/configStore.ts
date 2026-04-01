@@ -1,12 +1,13 @@
 import 'client-only'
 
-import type { StoredCompanion } from './core/types'
+import type { StatName, StoredCompanion } from './core/types'
 
 export type ToyConfig = {
   userId: string
   companion?: StoredCompanion
   companionMuted?: boolean
   introShownForName?: string
+  statsAdjust?: Partial<Record<StatName, number>>
 }
 
 const STORAGE_KEY = 'buddy-toy-config'

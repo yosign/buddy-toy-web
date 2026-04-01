@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getCompanion, roll } from '@/lib/core/companion'
 import { RARITY_STARS, STAT_NAMES } from '@/lib/core/types'
-import type { Companion } from '@/lib/core/types'
+import type { Companion, StatName } from '@/lib/core/types'
 import {
   getConfig,
   loadConfig,
@@ -32,6 +32,15 @@ const RARITY_COLOR: Record<string, string> = {
   legendary: '#facc15',
 }
 
+const RARITY_GUIDE_LINES = [
+  '★      Common    60%  — base stats 5-45',
+  '★★     Uncommon  25%  — base stats 15-55',
+  '★★★    Rare      10%  — base stats 25-65',
+  '★★★★   Epic       4%  — base stats 35-75',
+  '★★★★★  Legendary  1%  — base stats 50-80+',
+  '       Shiny     1%   — any rarity, glows ✨',
+]
+
 let lineId = 0
 function nextId() { return ++lineId }
 
@@ -40,14 +49,17 @@ function renderStatBar(value: number): string {
   return '█'.repeat(filled) + '░'.repeat(10 - filled)
 }
 
-function companionInfoLines(companion: Companion): string[] {
+function companionInfoLines(companion: Companion, statsOverride?: Partial<Record<StatName, number>>): string[] {
   const stars = RARITY_STARS[companion.rarity]
+  const stats = statsOverride
+    ? { ...companion.stats, ...statsOverride }
+    : companion.stats
   return [
     `${companion.name}  ${stars} ${companion.rarity}`,
     `species: ${companion.species}  shiny: ${companion.shiny}`,
     '─'.repeat(28),
     ...STAT_NAMES.map(name =>
-      `${name.padEnd(10)} ${renderStatBar(companion.stats[name])}  ${companion.stats[name]}`
+      `${name.padEnd(10)} ${renderStatBar(stats[name])}  ${stats[name]}`
     ),
     '─'.repeat(28),
     `"${companion.personality}"`,
@@ -60,6 +72,7 @@ export default function Home() {
   const [input, setInput] = useState('')
   const [reaction, setReaction] = useState<string | undefined>()
   const [petFlash, setPetFlash] = useState(false)
+  const [showStats, setShowStats] = useState(false)
   const logEndRef = useRef<HTMLDivElement>(null)
   const petFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const cfg = useSyncExternalStore(subscribeConfig, getConfig, getConfig)
@@ -104,6 +117,53 @@ export default function Home() {
 
   const companion: Companion | undefined = getCompanion(cfg)
 
+  // --- Button handlers ---
+
+  const handleHatch = () => {
+    const currentCfg = loadConfig()
+    const { bones, inspirationSeed } = roll(currentCfg.userId)
+    const soul = generateSoulFromBones(bones, inspirationSeed)
+    saveConfig({ companion: soul, statsAdjust: undefined })
+    const newCfg = getConfig()
+    const newCompanion = getCompanion(newCfg)!
+    addLine('intro', `✨ A wild ${newCompanion.rarity} ${newCompanion.species} hatched!`)
+    addLine('intro', `Meet ${newCompanion.name} — "${newCompanion.personality}"`)
+    // Flash sprite
+    setPetFlash(true)
+    if (petFlashTimeoutRef.current) clearTimeout(petFlashTimeoutRef.current)
+    petFlashTimeoutRef.current = setTimeout(() => {
+      setPetFlash(false)
+      petFlashTimeoutRef.current = undefined
+    }, 600)
+  }
+
+  const handlePet = () => {
+    const c = getCompanion(loadConfig())
+    if (!c) return
+    addLine('system', `${c.name} appreciated that. ♥`)
+    setPetFlash(true)
+    if (petFlashTimeoutRef.current) clearTimeout(petFlashTimeoutRef.current)
+    petFlashTimeoutRef.current = setTimeout(() => {
+      setPetFlash(false)
+      petFlashTimeoutRef.current = undefined
+    }, 600)
+  }
+
+  const handleMuteToggle = () => {
+    const muted = !(cfg.companionMuted ?? false)
+    saveConfig({ companionMuted: muted })
+    addLine('system', muted ? 'Companion muted.' : 'Companion unmuted.')
+  }
+
+  const handleStatChange = (name: StatName, value: number) => {
+    const current = cfg.statsAdjust ?? {}
+    saveConfig({ statsAdjust: { ...current, [name]: value } })
+  }
+
+  const handleResetStats = () => {
+    saveConfig({ statsAdjust: undefined })
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const line = input.trim()
@@ -124,14 +184,7 @@ export default function Home() {
             const c = getCompanion(currentCfg)!
             addLine('system', `${RARITY_STARS[c.rarity]} ${c.name} (${c.rarity} ${c.species}) — hatched and ready.`)
           } else {
-            // Hatch
-            const { bones, inspirationSeed } = roll(currentCfg.userId)
-            const soul = generateSoulFromBones(bones, inspirationSeed)
-            saveConfig({ companion: soul })
-            const newCfg = getConfig()
-            const newCompanion = getCompanion(newCfg)!
-            addLine('intro', `✨ A wild ${newCompanion.rarity} ${newCompanion.species} hatched!`)
-            addLine('intro', `Meet ${newCompanion.name} — "${newCompanion.personality}"`)
+            handleHatch()
           }
           break
         }
@@ -149,23 +202,9 @@ export default function Home() {
           break
         }
 
-        case 'pet': {
-          const c = getCompanion(loadConfig())
-          if (!c) {
-            addLine('system', 'No companion to pet yet.')
-          } else {
-            addLine('system', `${c.name} appreciated that. ♥`)
-            setPetFlash(true)
-            if (petFlashTimeoutRef.current) {
-              clearTimeout(petFlashTimeoutRef.current)
-            }
-            petFlashTimeoutRef.current = setTimeout(() => {
-              setPetFlash(false)
-              petFlashTimeoutRef.current = undefined
-            }, 600)
-          }
+        case 'pet':
+          handlePet()
           break
-        }
 
         case 'mute':
           saveConfig({ companionMuted: true })
@@ -192,6 +231,8 @@ export default function Home() {
       )
     }
   }
+
+  const displayStats = companion ? (cfg.statsAdjust ? { ...companion.stats, ...cfg.statsAdjust } : companion.stats) : undefined
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-start p-6 gap-6">
@@ -230,12 +271,94 @@ export default function Home() {
               {/* Info terminal */}
               <TerminalWindow
                 title="companion info"
-                lines={companionInfoLines(companion)}
+                lines={companionInfoLines(companion, cfg.statsAdjust)}
                 color={RARITY_COLOR[companion.rarity] ?? '#a1a1aa'}
               />
             </div>
           )}
         </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3 justify-center">
+          {!companion ? (
+            <Button
+              onClick={handleHatch}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-base px-6 py-5"
+            >
+              🥚 Hatch Companion
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleHatch}
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                🎲 Re-roll
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handlePet}
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                🐾 Pet
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleMuteToggle}
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                {cfg.companionMuted ? '🔊 Unmute' : '🔇 Mute'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowStats(s => !s)}
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                ⚙ Adjust Stats
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Stat Sliders Panel */}
+        {showStats && companion && displayStats && (
+          <div className="grid gap-3 p-4 bg-zinc-900 rounded-xl border border-zinc-800">
+            <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">Adjust Stats</p>
+            {STAT_NAMES.map(name => (
+              <div key={name} className="flex items-center gap-3">
+                <span className="text-xs font-mono text-zinc-400 w-24">{name}</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  value={displayStats[name]}
+                  onChange={e => handleStatChange(name, Number(e.target.value))}
+                  className="flex-1 accent-emerald-500"
+                />
+                <span className="text-xs font-mono text-zinc-300 w-8 text-right">{displayStats[name]}</span>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={handleResetStats} className="border-zinc-700 text-zinc-400 hover:bg-zinc-800 w-fit">
+              Reset
+            </Button>
+          </div>
+        )}
+
+        {/* Rarity Guide */}
+        <details className="group">
+          <summary className="cursor-pointer text-zinc-500 text-sm font-mono select-none list-none flex items-center gap-1 hover:text-zinc-300 transition-colors">
+            <span className="group-open:rotate-90 inline-block transition-transform">▸</span>
+            Rarity Guide
+          </summary>
+          <div className="mt-2">
+            <TerminalWindow
+              title="rarity guide"
+              lines={RARITY_GUIDE_LINES}
+              color="#a1a1aa"
+            />
+          </div>
+        </details>
 
         {/* Chat Log */}
         <div className="bg-zinc-900 rounded-xl p-4 font-mono text-sm space-y-1 max-h-48 overflow-y-auto">
