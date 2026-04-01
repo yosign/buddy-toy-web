@@ -4,7 +4,7 @@ import { CompanionSprite } from '@/components/CompanionSprite'
 import { TerminalWindow } from '@/components/TerminalWindow'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getCompanion, roll } from '@/lib/core/companion'
+import { getCompanion, roll, rollWithSeed } from '@/lib/core/companion'
 import { RARITY_STARS, STAT_NAMES } from '@/lib/core/types'
 import type { Companion, StatName } from '@/lib/core/types'
 import {
@@ -115,15 +115,27 @@ export default function Home() {
     }
   }, [])
 
-  const companion: Companion | undefined = getCompanion(cfg)
+  // Use lastRollSeed if present (re-rolled companion), else fall back to userId
+  const companion: Companion | undefined = (() => {
+    if (!cfg.companion) return undefined
+    const seed = cfg.lastRollSeed ?? cfg.userId
+    const { bones } = rollWithSeed(seed)
+    const adj = cfg.statsAdjust ?? {}
+    const stats = { ...bones.stats, ...adj }
+    return { ...bones, ...cfg.companion, stats }
+  })()
 
   // --- Button handlers ---
 
   const handleHatch = () => {
     const currentCfg = loadConfig()
-    const { bones, inspirationSeed } = roll(currentCfg.userId)
+    // If re-rolling (companion already exists), use a new random seed each time
+    const rollSeed = currentCfg.companion
+      ? `reroll-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      : currentCfg.userId
+    const { bones, inspirationSeed } = rollWithSeed(rollSeed)
     const soul = generateSoulFromBones(bones, inspirationSeed)
-    saveConfig({ companion: soul, statsAdjust: undefined })
+    saveConfig({ companion: soul, statsAdjust: undefined, lastRollSeed: rollSeed })
     const newCfg = getConfig()
     const newCompanion = getCompanion(newCfg)!
     addLine('intro', `✨ A wild ${newCompanion.rarity} ${newCompanion.species} hatched!`)
@@ -138,15 +150,14 @@ export default function Home() {
   }
 
   const handlePet = () => {
-    const c = getCompanion(loadConfig())
-    if (!c) return
-    addLine('system', `${c.name} appreciated that. ♥`)
+    if (!companion) return
+    addLine('system', `${companion.name} appreciated that. ♥`)
     setPetFlash(true)
     if (petFlashTimeoutRef.current) clearTimeout(petFlashTimeoutRef.current)
     petFlashTimeoutRef.current = setTimeout(() => {
       setPetFlash(false)
       petFlashTimeoutRef.current = undefined
-    }, 600)
+    }, 1200)
   }
 
   const handleMuteToggle = () => {
@@ -263,8 +274,15 @@ export default function Home() {
                     {reaction}
                   </div>
                 )}
-                <div className={petFlash ? 'opacity-30 transition-opacity' : 'opacity-100 transition-opacity'}>
-                  <CompanionSprite bones={companion} animated />
+                <div className="relative">
+                  <div className={petFlash ? 'opacity-20 scale-95 transition-all duration-300' : 'opacity-100 scale-100 transition-all duration-300'}>
+                    <CompanionSprite bones={companion} animated />
+                  </div>
+                  {petFlash && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-4xl animate-bounce">💗</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

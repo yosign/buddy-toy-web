@@ -8,6 +8,7 @@ export type ToyConfig = {
   companionMuted?: boolean
   introShownForName?: string
   statsAdjust?: Partial<Record<StatName, number>>
+  lastRollSeed?: string  // when set, use this seed to roll bones instead of userId
 }
 
 const STORAGE_KEY = 'buddy-toy-config'
@@ -37,6 +38,8 @@ export function loadConfig(): ToyConfig {
         companion: parsed.companion,
         companionMuted: parsed.companionMuted,
         introShownForName: parsed.introShownForName,
+        statsAdjust: parsed.statsAdjust,
+        lastRollSeed: parsed.lastRollSeed,
       }
     } else {
       cache = { userId: defaultUserId() }
