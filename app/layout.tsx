@@ -30,9 +30,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistMono.variable} ${robotoMono.variable} h-full antialiased`}
+      className={`${geistMono.variable} ${robotoMono.variable} dark h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white text-zinc-900" style={{ fontFamily: 'var(--font-geist-mono), "Fira Code", "Cascadia Code", monospace' }}>{children}</body>
+      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100" style={{ fontFamily: 'var(--font-geist-mono), "Fira Code", "Cascadia Code", monospace' }}>{children}</body>
     </html>
   );
 }
