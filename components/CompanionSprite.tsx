@@ -25,7 +25,18 @@ export function CompanionSprite({ bones, animated = true }: { bones: CompanionBo
   const colorClass = RARITY_CSS[bones.rarity] ?? 'text-zinc-400'
 
   return (
-    <pre className={`font-mono text-sm leading-snug select-none ${colorClass} ${bones.shiny ? 'drop-shadow-[0_0_8px_currentColor]' : ''}`}>
+    <pre
+      className={`select-none ${colorClass} ${bones.shiny ? 'drop-shadow-[0_0_8px_currentColor]' : ''}`}
+      style={{
+        fontFamily: '"Courier New", Courier, monospace',
+        fontSize: '14px',
+        lineHeight: '1.2',
+        letterSpacing: '0',
+        whiteSpace: 'pre',
+        fontVariantNumeric: 'tabular-nums',
+        fontFeatureSettings: '"kern" 0',
+      }}
+    >
       {lines.join('\n')}
     </pre>
   )
