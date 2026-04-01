@@ -26,11 +26,11 @@ type LogLine = {
 }
 
 const RARITY_COLOR: Record<string, string> = {
-  common:    '#a1a1aa',
-  uncommon:  '#4ade80',
-  rare:      '#22d3ee',
-  epic:      '#c084fc',
-  legendary: '#facc15',
+  common:    '#71717a',
+  uncommon:  '#16a34a',
+  rare:      '#0891b2',
+  epic:      '#9333ea',
+  legendary: '#d97706',
 }
 
 const RARITY_GUIDE_LINES = [
@@ -283,9 +283,12 @@ export default function Home() {
                 <div className="w-3 h-3 rounded-full bg-yellow-400" />
                 <div className="w-3 h-3 rounded-full bg-green-400" />
               </div>
-              <span className={`text-xs font-mono mx-auto ${companion.shiny ? 'shiny-text font-semibold' : 'text-zinc-400'}`}>
-                {companion.species} — {companion.rarity}
-                {companion.shiny && <span className="ml-1">✨ SHINY</span>}
+              <span
+                className={`text-xs font-mono mx-auto font-semibold ${companion.shiny ? 'shiny-text' : ''}`}
+                style={companion.shiny ? undefined : { color: RARITY_COLOR[companion.rarity] }}
+              >
+                {companion.name}
+                {companion.shiny && <span className="ml-1">✨</span>}
               </span>
             </div>
             {/* Content: sprite left, info right */}
