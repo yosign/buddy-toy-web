@@ -1,3 +1,5 @@
+import 'client-only'
+
 import type { StoredCompanion } from './core/types'
 
 export type ToyConfig = {
@@ -10,6 +12,7 @@ export type ToyConfig = {
 const STORAGE_KEY = 'buddy-toy-config'
 
 let cache: ToyConfig = { userId: 'anon' }
+const listeners = new Set<() => void>()
 
 function defaultUserId(): string {
   // Use a random persistent ID stored in localStorage
@@ -47,6 +50,19 @@ export function getConfig(): ToyConfig {
   return cache
 }
 
+export function subscribeConfig(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+export function refreshConfig(): ToyConfig {
+  const next = loadConfig()
+  for (const listener of listeners) listener()
+  return next
+}
+
 export function saveConfig(patch: Partial<ToyConfig>): void {
   cache = { ...cache, ...patch }
   if (typeof window !== 'undefined') {
@@ -54,4 +70,5 @@ export function saveConfig(patch: Partial<ToyConfig>): void {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cache))
     } catch {}
   }
+  for (const listener of listeners) listener()
 }

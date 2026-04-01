@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react'
 import { CompanionSprite } from '@/components/CompanionSprite'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,7 +7,13 @@ import { Input } from '@/components/ui/input'
 import { getCompanion, roll } from '@/lib/core/companion'
 import { RARITY_STARS, STAT_NAMES } from '@/lib/core/types'
 import type { Companion } from '@/lib/core/types'
-import { loadConfig, saveConfig, type ToyConfig } from '@/lib/configStore'
+import {
+  getConfig,
+  loadConfig,
+  refreshConfig,
+  saveConfig,
+  subscribeConfig,
+} from '@/lib/configStore'
 import { generateSoulFromBones } from '@/lib/soul'
 import { fireCompanionObserver } from '@/lib/observer'
 import { parseBuddyLine } from '@/lib/buddyCommands'
@@ -46,31 +52,28 @@ function statBarColor(val: number): string {
 export default function Home() {
   const [log, setLog] = useState<LogLine[]>([])
   const [input, setInput] = useState('')
-  const [cfg, setCfg] = useState<ToyConfig>({ userId: 'anon' })
   const [reaction, setReaction] = useState<string | undefined>()
   const [petFlash, setPetFlash] = useState(false)
   const logEndRef = useRef<HTMLDivElement>(null)
+  const petFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const cfg = useSyncExternalStore(subscribeConfig, getConfig, getConfig)
 
   const addLine = (kind: LogLine['kind'], text: string) => {
     setLog(prev => [...prev, { id: nextId(), kind, text }])
   }
 
-  const reloadCfg = () => {
-    const c = loadConfig()
-    setCfg({ ...c })
-    return c
-  }
+  const addIntroLine = useEffectEvent((text: string) => {
+    addLine('intro', text)
+  })
 
   // Mount: load config
   useEffect(() => {
-    const c = reloadCfg()
+    const c = refreshConfig()
     const companion = getCompanion(c)
     if (companion && c.introShownForName !== companion.name) {
-      addLine('intro', `${companion.name} is watching over you.`)
+      addIntroLine(`${companion.name} is watching over you.`)
       saveConfig({ introShownForName: companion.name })
-      setCfg({ ...loadConfig() })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Auto-scroll log
@@ -84,6 +87,14 @@ export default function Home() {
     const t = setTimeout(() => setReaction(undefined), 4000)
     return () => clearTimeout(t)
   }, [reaction])
+
+  useEffect(() => {
+    return () => {
+      if (petFlashTimeoutRef.current) {
+        clearTimeout(petFlashTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const companion: Companion | undefined = getCompanion(cfg)
 
@@ -111,7 +122,7 @@ export default function Home() {
             const { bones, inspirationSeed } = roll(currentCfg.userId)
             const soul = generateSoulFromBones(bones, inspirationSeed)
             saveConfig({ companion: soul })
-            const newCfg = reloadCfg()
+            const newCfg = getConfig()
             const newCompanion = getCompanion(newCfg)!
             addLine('intro', `✨ A wild ${newCompanion.rarity} ${newCompanion.species} hatched!`)
             addLine('intro', `Meet ${newCompanion.name} — "${newCompanion.personality}"`)
@@ -139,20 +150,24 @@ export default function Home() {
           } else {
             addLine('system', `${c.name} appreciated that. ♥`)
             setPetFlash(true)
-            setTimeout(() => setPetFlash(false), 600)
+            if (petFlashTimeoutRef.current) {
+              clearTimeout(petFlashTimeoutRef.current)
+            }
+            petFlashTimeoutRef.current = setTimeout(() => {
+              setPetFlash(false)
+              petFlashTimeoutRef.current = undefined
+            }, 600)
           }
           break
         }
 
         case 'mute':
           saveConfig({ companionMuted: true })
-          reloadCfg()
           addLine('system', 'Companion muted.')
           break
 
         case 'unmute':
           saveConfig({ companionMuted: false })
-          reloadCfg()
           addLine('system', 'Companion unmuted.')
           break
       }
