@@ -122,7 +122,10 @@ export default function Home() {
     const { bones } = rollWithSeed(seed)
     const adj = cfg.statsAdjust ?? {}
     const stats = { ...bones.stats, ...adj }
-    return { ...bones, ...cfg.companion, stats }
+    const base = { ...bones, ...cfg.companion, stats }
+    // Apply lucky override: force legendary + shiny
+    if (cfg.luckyOverride) return { ...base, rarity: 'legendary' as const, shiny: true }
+    return base
   })()
 
   // --- Button handlers ---
@@ -173,6 +176,25 @@ export default function Home() {
 
   const handleResetStats = () => {
     saveConfig({ statsAdjust: undefined })
+  }
+
+  const handleLuckyRoll = () => {
+    // Force legendary + shiny by brute-forcing seeds until we hit it
+    // (or just directly construct the bones with overrides)
+    const seed = `lucky-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const { bones, inspirationSeed } = rollWithSeed(seed)
+    // Force legendary + shiny regardless of roll outcome
+    const luckyBones = { ...bones, rarity: 'legendary' as const, shiny: true }
+    const soul = generateSoulFromBones(luckyBones, inspirationSeed)
+    saveConfig({ companion: soul, statsAdjust: undefined, lastRollSeed: seed, luckyOverride: true })
+    addLine('intro', `✨✨ LEGENDARY SHINY ${luckyBones.species} appeared! ✨✨`)
+    addLine('intro', `Meet ${soul.name} — "${soul.personality}"`)
+    setPetFlash(true)
+    if (petFlashTimeoutRef.current) clearTimeout(petFlashTimeoutRef.current)
+    petFlashTimeoutRef.current = setTimeout(() => {
+      setPetFlash(false)
+      petFlashTimeoutRef.current = undefined
+    }, 2000)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -334,6 +356,13 @@ export default function Home() {
                 className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
               >
                 ⚙ Adjust Stats
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLuckyRoll}
+                className="border-yellow-600 text-yellow-400 hover:bg-yellow-950 hover:text-yellow-300"
+              >
+                🍀 Lucky Roll
               </Button>
             </>
           )}

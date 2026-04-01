@@ -9,6 +9,7 @@ export type ToyConfig = {
   introShownForName?: string
   statsAdjust?: Partial<Record<StatName, number>>
   lastRollSeed?: string  // when set, use this seed to roll bones instead of userId
+  luckyOverride?: boolean  // force legendary + shiny on companion display
 }
 
 const STORAGE_KEY = 'buddy-toy-config'
@@ -40,6 +41,7 @@ export function loadConfig(): ToyConfig {
         introShownForName: parsed.introShownForName,
         statsAdjust: parsed.statsAdjust,
         lastRollSeed: parsed.lastRollSeed,
+        luckyOverride: parsed.luckyOverride,
       }
     } else {
       cache = { userId: defaultUserId() }
