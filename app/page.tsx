@@ -1,7 +1,8 @@
 'use client'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { CompanionSprite } from '@/components/CompanionSprite'
 import { TerminalWindow } from '@/components/TerminalWindow'
+import { CompanionSpriteCanvas } from '@/components/CompanionSpriteCanvas'
+import { CompanionInfoCanvas } from '@/components/CompanionInfoCanvas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getCompanion, roll, rollWithSeed } from '@/lib/core/companion'
@@ -269,54 +270,64 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-start p-6 gap-6">
-      <div className="max-w-2xl w-full mx-auto flex flex-col gap-6">
+      <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-100">buddy-toy</h1>
           <p className="text-zinc-500 text-sm mt-1">your deterministic dev companion</p>
         </div>
 
-        {/* Companion Card */}
-        <div className="bg-zinc-900 rounded-xl p-6">
-          {!companion ? (
-            <div className="flex flex-col items-center gap-3 py-4">
-              <pre className="font-mono text-zinc-600 text-lg select-none leading-snug">{
+        {/* Companion Terminal — sprite + info in one wide window */}
+        {!companion ? (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 flex flex-col items-center gap-3">
+            <pre className="font-mono text-zinc-600 text-lg select-none leading-snug">{
 `  .---------.
   |  [ ??? ]  |
   \`---------\``
-              }</pre>
-              <p className="text-zinc-500 text-sm italic">No companion yet. Type /buddy to hatch yours.</p>
+            }</pre>
+            <p className="text-zinc-500 text-sm italic">No companion yet. Click Hatch to begin.</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/50 w-full">
+            {/* Title bar */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border-b border-zinc-800 rounded-t-xl">
+              <div className="flex gap-1.5 shrink-0">
+                <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                <div className="w-3 h-3 rounded-full bg-green-500/70" />
+              </div>
+              <span className="text-xs text-zinc-500 font-mono mx-auto">
+                {companion.species} — {companion.rarity}{companion.shiny ? ' ✨' : ''}
+              </span>
             </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {/* Sprite row */}
-              <div className="flex flex-col items-start gap-2">
+            {/* Content: sprite left, info right */}
+            <div className="p-5 flex flex-row gap-6 items-start rounded-b-xl bg-zinc-950">
+              {/* Sprite column */}
+              <div className="relative shrink-0">
                 {reaction && (
-                  <div className="bg-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 italic max-w-[220px]">
+                  <div className="mb-2 bg-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 italic max-w-[180px]">
                     {reaction}
                   </div>
                 )}
-                <div className="relative">
-                  <div className={petFlash ? 'opacity-20 scale-95 transition-all duration-300' : 'opacity-100 scale-100 transition-all duration-300'}>
-                    <CompanionSprite bones={companion} animated />
-                  </div>
-                  {petFlash && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <span className="text-4xl animate-bounce">💗</span>
-                    </div>
-                  )}
+                <div className={petFlash ? 'opacity-20 scale-95 transition-all duration-300' : 'opacity-100 scale-100 transition-all duration-300'}>
+                  <CompanionSpriteCanvas bones={companion} animated />
                 </div>
+                {petFlash && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-4xl animate-bounce">💗</span>
+                  </div>
+                )}
               </div>
-
-              {/* Info terminal */}
-              <TerminalWindow
-                title="companion info"
-                lines={companionInfoLines(companion, cfg.statsAdjust)}
-                color={RARITY_COLOR[companion.rarity] ?? '#a1a1aa'}
-              />
+              {/* Info column */}
+              <div className="flex-1 min-w-0">
+                <CompanionInfoCanvas
+                  companion={companion}
+                  statsAdjust={cfg.statsAdjust}
+                />
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 justify-center">

@@ -30,13 +30,22 @@ export function TerminalCanvas({
       if (!ctx) return
 
       // Wait for font to load (critical for mobile)
-      const fontStr = `${fontSize}px "Roboto Mono"`
-      try {
-        await document.fonts.load(fontStr)
-      } catch {}
+      // Try Geist Mono first (self-hosted via next/font), fall back to Roboto Mono
+      const fontCandidates = [
+        `${fontSize}px "Geist Mono"`,
+        `${fontSize}px "__GeistMono_Fallback"`,
+        `${fontSize}px "Roboto Mono"`,
+      ]
+      let loadedFont = fontCandidates[fontCandidates.length - 1]!
+      for (const f of fontCandidates) {
+        try {
+          await document.fonts.load(f)
+          if (document.fonts.check(f)) { loadedFont = f; break }
+        } catch {}
+      }
       if (cancelled) return
 
-      const font = `${fontStr}, "Courier New", monospace`
+      const font = `${loadedFont}, "Courier New", monospace`
       ctx.font = font
 
       // Measure cell width using a known wide char
@@ -58,14 +67,15 @@ export function TerminalCanvas({
       canvas.style.height = `${height}px`
       ctx.scale(dpr, dpr)
 
-      // Background
-      ctx.fillStyle = bgColor
-      ctx.fillRect(0, 0, width, height)
-
-      // Scanlines
-      for (let y = 0; y < height; y += 3) {
-        ctx.fillStyle = 'rgba(0,0,0,0.06)'
-        ctx.fillRect(0, y, width, 1)
+      // Background (skip if transparent)
+      if (bgColor !== 'transparent') {
+        ctx.fillStyle = bgColor
+        ctx.fillRect(0, 0, width, height)
+        // Scanlines only on opaque bg
+        for (let y = 0; y < height; y += 3) {
+          ctx.fillStyle = 'rgba(0,0,0,0.06)'
+          ctx.fillRect(0, y, width, 1)
+        }
       }
 
       // Text setup
