@@ -132,7 +132,7 @@ export function TerminalCanvas({
 
     function tick() {
       if (cancelled) return
-      if (rainbow) frameRef.current = (frameRef.current + 0.15) % RAINBOW.length
+      if (rainbow) frameRef.current = (frameRef.current + 0.03) % RAINBOW.length
       drawFrame()
       if (rainbow) {
         rafRef.current = requestAnimationFrame(tick)
