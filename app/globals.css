@@ -128,3 +128,31 @@
     @apply font-mono;
   }
 }
+
+@keyframes rainbow-border {
+  0%   { border-color: #ff4444; box-shadow: 0 0 20px 4px #ff444488, 0 0 8px 2px #ff444444; }
+  16%  { border-color: #ff9900; box-shadow: 0 0 20px 4px #ff990088, 0 0 8px 2px #ff990044; }
+  33%  { border-color: #ffee00; box-shadow: 0 0 20px 4px #ffee0088, 0 0 8px 2px #ffee0044; }
+  50%  { border-color: #44ff88; box-shadow: 0 0 20px 4px #44ff8888, 0 0 8px 2px #44ff8844; }
+  66%  { border-color: #44aaff; box-shadow: 0 0 20px 4px #44aaff88, 0 0 8px 2px #44aaff44; }
+  83%  { border-color: #cc44ff; box-shadow: 0 0 20px 4px #cc44ff88, 0 0 8px 2px #cc44ff44; }
+  100% { border-color: #ff4444; box-shadow: 0 0 20px 4px #ff444488, 0 0 8px 2px #ff444444; }
+}
+
+@keyframes rainbow-text {
+  0%   { color: #ff4444; }
+  16%  { color: #ff9900; }
+  33%  { color: #ffee00; }
+  50%  { color: #44ff88; }
+  66%  { color: #44aaff; }
+  83%  { color: #cc44ff; }
+  100% { color: #ff4444; }
+}
+
+.shiny-border {
+  animation: rainbow-border 2s linear infinite;
+}
+
+.shiny-text {
+  animation: rainbow-text 2s linear infinite;
+}
