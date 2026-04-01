@@ -1,11 +1,25 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
-const RAINBOW = ['#ff4444', '#ff9900', '#ffee00', '#44ff88', '#44aaff', '#cc44ff']
+// Blend baseColor with white at given alpha (0-1)
+function blendWhite(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const rr = Math.round(r + (255 - r) * alpha)
+  const gg = Math.round(g + (255 - g) * alpha)
+  const bb = Math.round(b + (255 - b) * alpha)
+  return `rgb(${rr},${gg},${bb})`
+}
 
-function rainbowColor(charIndex: number, offset: number): string {
-  const i = Math.floor((charIndex + offset) % RAINBOW.length)
-  return RAINBOW[(i + RAINBOW.length) % RAINBOW.length]!
+// Given char position (0..1 normalized across all chars) and wave offset (0..1),
+// return alpha of white overlay — a smooth pulse wave
+function shimmerAlpha(pos: number, offset: number): number {
+  // wave travels left to right, wraps around
+  const dist = ((pos - offset) % 1 + 1) % 1  // 0..1
+  // gaussian-ish peak at dist=0, falloff
+  const width = 0.18
+  return Math.max(0, 1 - (dist / width) ** 2) * 0.55
 }
 
 type Props = {
@@ -106,38 +120,37 @@ export function TerminalCanvas({
         })
         ctx.shadowBlur = 0
       } else {
-        // Rainbow mode: per-char color, offset shifts each frame = marching effect
-        const offset = frameRef.current
-        // subtle glow for shiny
-        ctx.shadowBlur = 6
+        // Shimmer mode: fixed rarity color + white highlight wave sweeping left→right
+        const offset = frameRef.current  // 0..1, advances each frame
 
-        let globalCol = 0
+        // Count total non-space chars for position normalization
+        const allChars: { ch: string; row: number; col: number; idx: number }[] = []
         lines.forEach((line, row) => {
-          const y = padding + row * lineH
           for (let col = 0; col < line.length; col++) {
             const ch = line[col]
-            if (ch && ch !== ' ') {
-              const c = rainbowColor(globalCol, offset)
-              ctx.fillStyle = c
-              ctx.shadowColor = c
-              ctx.fillText(ch, padding + col * cellW, y)
-            }
-            globalCol++
+            if (ch && ch !== ' ') allChars.push({ ch, row, col, idx: allChars.length })
           }
-          globalCol++ // newline gap
         })
-        ctx.shadowBlur = 0
+        const total = Math.max(allChars.length, 1)
+
+        allChars.forEach(({ ch, row, col, idx }) => {
+          const pos = idx / total
+          const alpha = shimmerAlpha(pos, offset)
+          const blended = alpha > 0.01 ? blendWhite(color.startsWith('#') ? color : '#facc15', alpha) : color
+          ctx.fillStyle = blended
+          ctx.fillText(ch, padding + col * cellW, padding + row * lineH)
+        })
       }
     }
 
     const startTime = performance.now()
-    const SPEED = 0.4 // full rainbow cycle per second (lower = slower)
+    const SPEED = 0.33 // shimmer wave cycles per second (1/3 = ~3s per sweep)
 
     function tick() {
       if (cancelled) return
       if (rainbow) {
         const elapsed = (performance.now() - startTime) / 1000 // seconds
-        frameRef.current = (elapsed * SPEED * RAINBOW.length) % RAINBOW.length
+        frameRef.current = (elapsed * SPEED) % 1  // 0..1 wave position
       }
       drawFrame()
       if (rainbow) {
