@@ -25,10 +25,13 @@ export function CompanionInfoCanvas({
 }) {
   const stats = statsAdjust ? { ...companion.stats, ...statsAdjust } : companion.stats
   const color = RARITY_COLOR[companion.rarity] ?? '#a1a1aa'
+  const isShiny = companion.shiny
 
-  const lines = [
-    `${companion.name}`,
-    `${RARITY_STARS[companion.rarity]} ${companion.rarity}${companion.shiny ? '  ✨ shiny' : ''}`,
+  // Line 0: name (rainbow if shiny)
+  const nameLine = [`${companion.name}  ${RARITY_STARS[companion.rarity]}${isShiny ? ' ✨ SHINY' : ''}`]
+
+  // Rest: static color
+  const bodyLines = [
     `species: ${companion.species}`,
     `─`.repeat(26),
     ...STAT_NAMES.map(name =>
@@ -39,13 +42,21 @@ export function CompanionInfoCanvas({
   ]
 
   return (
-    <TerminalCanvas
-      lines={lines}
-      color={color}
-      glowColor={companion.shiny ? color : undefined}
-      bgColor="transparent"
-      padding={4}
-      rainbow={companion.shiny}
-    />
+    <div>
+      <TerminalCanvas
+        lines={nameLine}
+        color={color}
+        bgColor="transparent"
+        padding={4}
+        rainbow={isShiny}
+      />
+      <TerminalCanvas
+        lines={bodyLines}
+        color={isShiny ? '#facc15' : color}
+        bgColor="transparent"
+        padding={4}
+        rainbow={false}
+      />
+    </div>
   )
 }
